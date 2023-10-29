@@ -1,0 +1,81 @@
+image: python:3.9-slim
+
+stages:
+  - tasks
+
+services:
+  - name: postgres:15-alpine
+    alias: postgres
+
+
+workflow:
+  rules:
+    - when: always
+
+variables:
+  POSTGRES_DB: postgres
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: password
+  POSTGRES_HOST_AUTH_METHOD: trust
+
+  DBNAME: postgres
+  DBHOST: postgres
+  DBPORT: 5432
+  DBUSER: postgres
+  DBPASSWORD: password
+
+  PROJECT_DIR: ${CI_PROJECT_DIR}/
+  ANALYSIS_DIR: ${PROJECT_DIR}/analysis
+  SCRIPTS_DIR: ${PROJECT_DIR}/scripts
+  TESTS_DIR: ${PROJECT_DIR}/tests
+  UTILS_DIR: ${PROJECT_DIR}/utils
+  PYPSQL: ${UTILS_DIR}/pypsql.py
+
+
+  NO_COLOUR: '\033[0m'
+  LIGHT_RED: '\033[1;31m'
+
+
+.setup:
+  before_script:
+    - pip install -r ${PROJECT_DIR}/requirements.txt > /dev/null 2> /dev/null
+
+
+tasks 3-7, 9th:
+  stage: tasks
+  extends:
+    - .setup
+  script:
+    - echo -e "${LIGHT_RED}>>> Task №3 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/table_ddl.sql" --cat
+    
+    - echo -e "${LIGHT_RED}>>> Task №4-5 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/inserts.sql"
+    - echo "Table 'sports_center' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.sports_center" --verbose
+    - echo "Table 'trainer' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.trainer" --verbose
+    - echo "Table 'competition' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.competition" --verbose
+    - echo "Table 'inventory' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.inventory" --verbose
+    - echo "Table 'judge' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.judge" --verbose
+    - echo "Table 'judge_x_position' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.judge_x_position" --verbose
+    - echo "Table 'sportsman' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.sportsman" --verbose
+    - echo "Table 'rating' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM fs.rating" --verbose
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/crud.sql"
+    
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/selects.sql" pytest ${TESTS_DIR}/select_tests.py
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/views.sql"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/view_for_test.sql" pytest ${TESTS_DIR}/view_tests.py
+    
+    - echo -e "${LIGHT_RED}>>> Task №10 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/procedures.sql"
+
